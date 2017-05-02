@@ -11,11 +11,10 @@ serialaddresses = ['/dev/ttyACM0','/dev/ttyACM1']
 
 # serial0 = serial.Serial('/dev/ttyACM0',57600,timeout=0.001)
 # serial1 = serial.Serial('/dev/ttyACM1',57600,timeout=0.001)
-initialize_motors()
 
 class arduinoMotor:
 
-    def __init__(self, serial, waittime=0.01, readlength=16):
+    def __init__(self, serial, waittime=0.02, readlength=16):
         self.serial = serial
         self.waittime = waittime
         self.readlength = readlength
@@ -31,16 +30,22 @@ class arduinoMotor:
             r = re.match(r'(.*)\r', response.decode('utf-8')).group(1)
         except AttributeError:
             r = ''
+        print(r)
         return r
 
 def initialize_motors():
     for ad in serialaddresses:
-        ser = serial.Serial(ad,57600,timeout=0.001)
+        ser = serial.Serial(ad,57600,timeout=0.005)
         motorhandle = arduinoMotor(ser)
-        k = motorhandle.sendrecv('DN')
-        if k is in motordict:
-            motordict[k]['handle'] = motorhandle
-        print('Motor with name '+k+' is initialized'.)
+        i = 0
+        k = ''
+        while k == '' and i < 5:
+            k = motorhandle.sendrecv('DN')
+            if k in motordict:
+                motordict[k]['handle'] = motorhandle
+                print('Motor with name \''+k+'\' is initialized.')
+            i += 1
+            time.sleep(0.5)
 
 def go_to_degree(degree):
     """Move sample motor to angular position indicated by degree.
@@ -89,3 +94,6 @@ def get_sample_position():
     steps = int(SendRecv(motordict['sample']['handle'],'PX')[1])
     theta = steps*motordict['sample']['degperstep']
     return str(round(theta,2))+'deg'
+
+initialize_motors()
+
