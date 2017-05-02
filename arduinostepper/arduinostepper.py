@@ -14,10 +14,11 @@ serialaddresses = ['/dev/ttyACM0','/dev/ttyACM1']
 
 class arduinoMotor:
 
-    def __init__(self, serial, waittime=0.02, readlength=16):
+    def __init__(self, serial, waittime=0.02, readlength=16,verbose=False):
         self.serial = serial
         self.waittime = waittime
         self.readlength = readlength
+        self.verbose = verbose
 
     def sendrecv(self, string):
         self.serial.write(string.encode('ascii'))
@@ -30,13 +31,14 @@ class arduinoMotor:
             r = re.match(r'(.*)\r', response.decode('utf-8')).group(1)
         except AttributeError:
             r = ''
-        print(r)
+        if self.verbose:
+            print(r)
         return r
 
-def initialize_motors():
+def initialize_motors(**kwargs):
     for ad in serialaddresses:
         ser = serial.Serial(ad,57600,timeout=0.005)
-        motorhandle = arduinoMotor(ser)
+        motorhandle = arduinoMotor(ser,**kwargs)
         i = 0
         k = ''
         while k == '' and i < 5:
@@ -64,7 +66,7 @@ def go_to_degree(degree):
     """
     steps = degree/motordict['sample']['degperstep']
     xstr='X'+str(int(steps))
-    SendRecv(motordict['sample']['handle'],xstr)
+    motordict['sample']['handle'].sendrecv(xstr)
 
 def go_to_mm(distance):
     """Move camera motor to position indicated by distance(mm).
@@ -83,15 +85,15 @@ def go_to_mm(distance):
     steps = distance/motordict['camera']['mmperstep']
     xstr="X"+str(int(steps))
     print(xstr)
-    SendRecv(motordict['camera']['handle'],xstr)
+    motordict['camera']['handle'].sendrecv(xstr)
 
 def get_camera_position():
-    steps = int(SendRecv(motordict['camera']['handle'],'PX')[1])
+    steps = int(motordict['camera']['handle'].sendrecv('PX'))
     distance = steps*motordict['camera']['mmperstep']
     return str(round(distance,2))+'mm'
 
 def get_sample_position():
-    steps = int(SendRecv(motordict['sample']['handle'],'PX')[1])
+    steps = int(motordict['sample']['handle'].sendrecv('PX'))
     theta = steps*motordict['sample']['degperstep']
     return str(round(theta,2))+'deg'
 
