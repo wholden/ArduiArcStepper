@@ -49,7 +49,7 @@ def initialize_motors(**kwargs):
             i += 1
             time.sleep(0.5)
 
-def go_to_degree(degree):
+def go_to_degree(degree,blockuntilcomplete):
     """Move sample motor to angular position indicated by degree.
     
     This moves the sample rotator to the indicated position.
@@ -67,6 +67,10 @@ def go_to_degree(degree):
     steps = degree/motordict['sample']['degperstep']
     xstr='X'+str(int(steps))
     motordict['sample']['handle'].sendrecv(xstr)
+
+    if blockuntilcomplete:
+        while int(motordict['sample']['handle'].sendrecv('PX')) != int(steps):
+            time.sleep(2)
 
 def go_to_mm(distance):
     """Move camera motor to position indicated by distance(mm).
