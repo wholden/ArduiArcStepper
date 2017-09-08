@@ -49,7 +49,7 @@ def initialize_motors(**kwargs):
             i += 1
             time.sleep(0.5)
 
-def go_to_degree(degree,blockuntilcomplete):
+def go_to_degree(degree,blockuntilcomplete = True):
     """Move sample motor to angular position indicated by degree.
     
     This moves the sample rotator to the indicated position.
@@ -72,7 +72,7 @@ def go_to_degree(degree,blockuntilcomplete):
         while int(motordict['sample']['handle'].sendrecv('PX')) != int(steps):
             time.sleep(2)
 
-def go_to_mm(distance):
+def go_to_mm(distance,blockuntilcomplete = True):
     """Move camera motor to position indicated by distance(mm).
     
     This moves the camera stage to the indicated position.
@@ -91,6 +91,10 @@ def go_to_mm(distance):
     print(xstr)
     motordict['camera']['handle'].sendrecv(xstr)
 
+    if blockuntilcomplete:
+        while int(motordict['camera']['handle'].sendrecv('PX')) != int(steps):
+            time.sleep(2)
+
 def get_camera_position():
     steps = int(motordict['camera']['handle'].sendrecv('PX'))
     distance = steps*motordict['camera']['mmperstep']
@@ -101,5 +105,22 @@ def get_sample_position():
     theta = steps*motordict['sample']['degperstep']
     return str(round(theta,2))+'deg'
 
-initialize_motors()
+def set_camera_position(distance):
+    xpos = int(distance/motordict['camera']['mmperstep'])
+    motordict['camera']['handle'].sendrecv('PX='+str(xpos))
+    return 'camera position set to: ' + str(xpos) + 'steps'
+
+def set_sample_position(distance):
+    xpos = int(distance/motordict['sample']['degperstep'])
+    motordict['sample']['handle'].sendrecv('PX='+str(xpos))
+    return 'sample position set to: ' + str(xpos) + 'steps'
+
+def camera_limit_minus():
+    return motordict['camera']['handle'].sendrecv('L-')
+
+def stop():
+    motordict['camera']['handle'].sendrecv('STOP')
+    motordict['sample']['handle'].sendrecv('STOP')
+    return 'STOP command sent to both motors'
+# initialize_motors()
 
