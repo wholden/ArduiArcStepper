@@ -12,6 +12,22 @@ serialaddresses = ['/dev/ttyACM0','/dev/ttyACM1']
 # serial0 = serial.Serial('/dev/ttyACM0',57600,timeout=0.001)
 # serial1 = serial.Serial('/dev/ttyACM1',57600,timeout=0.001)
 
+#Implementing rudimentary checksum to help with communication errors.
+def checksum(msg):
+    chk = 0
+    for c in msg:
+        try:
+            chk -= ord(c)
+        except TypeError:
+            chk -= c
+    return bytes([chk % 256])
+
+def append_checksum(msg):
+    return msg.encode('ascii') + checksum(msg)
+
+def wrap_messgae(msg):
+    return bytes([137])+msg.encode('ascii')+bytes([237])
+
 class arduinoMotor:
 
     def __init__(self, serial, waittime=0.02, readlength=16,verbose=False):
@@ -21,7 +37,7 @@ class arduinoMotor:
         self.verbose = verbose
 
     def sendrecv(self, string):
-        self.serial.write(string.encode('ascii'))
+        self.serial.write(wrap_messgae(string))
         time.sleep(self.waittime)
         return self.readAndParse()
 
@@ -69,8 +85,13 @@ def go_to_degree(degree,blockuntilcomplete = True):
     motordict['sample']['handle'].sendrecv(xstr)
 
     if blockuntilcomplete:
-        while int(motordict['sample']['handle'].sendrecv('PX')) != int(steps):
-            time.sleep(2)
+        while True:
+            try:
+                if int(motordict['sample']['handle'].sendrecv('PX')) == int(steps):
+                    break
+            except ValueError:
+                continue
+            time.sleep(1)
 
 def go_to_mm(distance,blockuntilcomplete = True):
     """Move camera motor to position indicated by distance(mm).
@@ -93,7 +114,7 @@ def go_to_mm(distance,blockuntilcomplete = True):
 
     if blockuntilcomplete:
         while int(motordict['camera']['handle'].sendrecv('PX')) != int(steps):
-            time.sleep(2)
+            time.sleep(1)
 
 def get_camera_position():
     steps = int(motordict['camera']['handle'].sendrecv('PX'))
